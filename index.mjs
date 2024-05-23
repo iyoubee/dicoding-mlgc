@@ -58,7 +58,18 @@ app.post('/predict', upload.single('image'), async (req, res) => {
     const result =
       (await prediction.array())[0][0] > 0.5 ? 'Cancer' : 'Non-cancer'
 
-    savePredictionToFirestore(prediction)
+    const predictionData = {
+      id: uuidv4(),
+      result,
+      suggestion:
+        result === 'Cancer'
+          ? 'Segera periksa ke dokter!'
+          : 'Tetap jaga kesehatan!',
+      createdAt: new Date().toISOString(),
+    }
+
+    // Save prediction to Firestore
+    await savePredictionToFirestore(predictionData)
 
     const predictionResult = {
       status: 'success',
