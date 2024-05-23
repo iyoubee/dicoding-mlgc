@@ -49,6 +49,8 @@ async function loadModel() {
 // Load the model when the server starts
 loadModel()
 
+app.use(cors())
+
 // Endpoint to handle prediction
 app.post('/predict', (req, res) => {
   upload(req, res, async function (err) {
