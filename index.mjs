@@ -1,5 +1,3 @@
-// index.mjs
-
 import express from 'express'
 import multer from 'multer'
 import { v4 as uuidv4 } from 'uuid'
@@ -83,6 +81,11 @@ app.post('/predict', upload.single('image'), async (req, res) => {
       message: 'Error during prediction: ' + error.message,
     })
   }
+})
+
+// Check if server is running
+app.get('/', (req, res) => {
+  res.send('Server is running!')
 })
 
 // Handle errors related to file size and type
