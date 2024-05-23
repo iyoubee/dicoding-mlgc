@@ -25,15 +25,18 @@ const upload = multer({
 
 // Initialize Google Cloud Storage
 const storage = new Storage()
-const bucketName = 'submissionmlgc-hilman' // Replace with your bucket name
+const bucketName = 'submissionmlgc-hilman'
 
 let model
 
 // Function to download and load the model
 async function loadModel() {
   try {
-    const tempDir = os.tmpdir()
-    const modelDir = path.join(tempDir, uuidv4())
+    const tempDir = './model/'
+    const modelDir = path.join(tempDir)
+    if (fs.existsSync(modelDir)) {
+      fs.rmdirSync(modelDir, { recursive: true })
+    }
     fs.mkdirSync(modelDir)
 
     const files = [
@@ -52,12 +55,8 @@ async function loadModel() {
         await storage.bucket(bucketName).file(file).download(options)
       })
     )
-
-    console.log('ea')
-
-    model = await tf.loadLayersModel(
-      `file://${path.join(modelDir, 'model.json')}`
-    )
+    
+    model = await tf.loadGraphModel(`file://${modelDir}/model.json`);;
     console.log('Model loaded successfully')
   } catch (err) {
     console.error('Failed to load model', err)
