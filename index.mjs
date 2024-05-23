@@ -75,13 +75,7 @@ app.post('/predict', upload.single('image'), async (req, res) => {
       status: 'success',
       message: 'Model prediction successful',
       data: {
-        id: uuidv4(),
-        result,
-        suggestion:
-          result === 'Cancer'
-            ? 'Segera periksa ke dokter!'
-            : 'Tetap jaga kesehatan!',
-        createdAt: new Date().toISOString(),
+        ...predictionData,
       },
     }
 
