@@ -53,6 +53,8 @@ async function loadModel() {
       })
     )
 
+    console.log('ea')
+
     model = await tf.loadLayersModel(
       `file://${path.join(modelDir, 'model.json')}`
     )
