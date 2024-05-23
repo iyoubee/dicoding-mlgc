@@ -4,10 +4,6 @@ import express from 'express'
 import multer from 'multer'
 import { v4 as uuidv4 } from 'uuid'
 import * as tf from '@tensorflow/tfjs-node'
-import { Storage } from '@google-cloud/storage'
-import path from 'path'
-import os from 'os'
-import fs from 'fs'
 
 const app = express()
 const port = process.env.PORT || 8080
@@ -23,40 +19,16 @@ const upload = multer({
   },
 })
 
-// Initialize Google Cloud Storage
-const storage = new Storage()
-const bucketName = 'submissionmlgc-hilman'
-
 let model
 
 // Function to download and load the model
 async function loadModel() {
   try {
-    const tempDir = './model/'
-    const modelDir = path.join(tempDir)
-    if (fs.existsSync(modelDir)) {
-      fs.rmdirSync(modelDir, { recursive: true })
+    const modelUrl = process.env.MODEL_URL // Assuming MODEL_URL is the environment variable storing the model URL
+    if (!modelUrl) {
+      throw new Error('Model URL is not provided in the environment variable')
     }
-    fs.mkdirSync(modelDir)
-
-    const files = [
-      'model.json',
-      'group1-shard1of4.bin',
-      'group1-shard2of4.bin',
-      'group1-shard3of4.bin',
-      'group1-shard4of4.bin',
-    ]
-
-    await Promise.all(
-      files.map(async (file) => {
-        const options = {
-          destination: path.join(modelDir, file),
-        }
-        await storage.bucket(bucketName).file(file).download(options)
-      })
-    )
-    
-    model = await tf.loadGraphModel(`file://${modelDir}/model.json`);;
+    model = await tf.loadGraphModel(modelUrl)
     console.log('Model loaded successfully')
   } catch (err) {
     console.error('Failed to load model', err)
