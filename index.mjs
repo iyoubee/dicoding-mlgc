@@ -1,11 +1,13 @@
-const express = require('express')
-const multer = require('multer')
-const { v4: uuidv4 } = require('uuid')
-const tf = require('@tensorflow/tfjs-node')
-const { Storage } = require('@google-cloud/storage')
-const path = require('path')
-const os = require('os')
-const fs = require('fs')
+// index.mjs
+
+import express from 'express'
+import multer from 'multer'
+import { v4 as uuidv4 } from 'uuid'
+import * as tf from '@tensorflow/tfjs-node'
+import { Storage } from '@google-cloud/storage'
+import path from 'path'
+import os from 'os'
+import fs from 'fs'
 
 const app = express()
 const port = process.env.PORT || 8080
@@ -23,49 +25,45 @@ const upload = multer({
 
 // Initialize Google Cloud Storage
 const storage = new Storage()
-const bucketName = 'YOUR_BUCKET_NAME' // Replace with your bucket name
-const modelPath = './'
+const bucketName = 'submissionmlgc-hilman' // Replace with your bucket name
 
 let model
 
 // Function to download and load the model
 async function loadModel() {
-  const tempDir = os.tmpdir()
-  const modelDir = path.join(tempDir, uuidv4())
-  fs.mkdirSync(modelDir)
+  try {
+    const tempDir = os.tmpdir()
+    const modelDir = path.join(tempDir, uuidv4())
+    fs.mkdirSync(modelDir)
 
-  const files = [
-    'model.json',
-    'group1-shard1of4.bin',
-    'group1-shard2of4.bin',
-    'group1-shard3of4.bin',
-    'group1-shard4of4.bin',
-  ]
-  await Promise.all(
-    files.map(async (file) => {
-      const options = {
-        destination: path.join(modelDir, file),
-      }
-      await storage
-        .bucket(bucketName)
-        .file(`${path.dirname(modelPath)}/${file}`)
-        .download(options)
-    })
-  )
+    const files = [
+      'model.json',
+      'group1-shard1of4.bin',
+      'group1-shard2of4.bin',
+      'group1-shard3of4.bin',
+      'group1-shard4of4.bin',
+    ]
 
-  model = await tf.loadLayersModel(
-    `file://${path.join(modelDir, 'model.json')}`
-  )
+    await Promise.all(
+      files.map(async (file) => {
+        const options = {
+          destination: path.join(modelDir, file),
+        }
+        await storage.bucket(bucketName).file(file).download(options)
+      })
+    )
+
+    model = await tf.loadLayersModel(
+      `file://${path.join(modelDir, 'model.json')}`
+    )
+    console.log('Model loaded successfully')
+  } catch (err) {
+    console.error('Failed to load model', err)
+  }
 }
 
 // Load the model when the server starts
 loadModel()
-  .then(() => {
-    console.log('Model loaded successfully')
-  })
-  .catch((err) => {
-    console.error('Failed to load model', err)
-  })
 
 // Endpoint to handle prediction
 app.post('/predict', upload.single('image'), async (req, res) => {
@@ -75,11 +73,10 @@ app.post('/predict', upload.single('image'), async (req, res) => {
     }
 
     // Simulate image preprocessing and prediction
-    // This is a placeholder - replace with actual image processing logic
     const imageBuffer = req.file.buffer
     const imageTensor = tf.node
       .decodeImage(imageBuffer)
-      .resizeNearestNeighbor([224, 224])
+      .resizeBilinear([224, 224])
       .toFloat()
       .expandDims()
 
@@ -89,7 +86,7 @@ app.post('/predict', upload.single('image'), async (req, res) => {
 
     const predictionResult = {
       status: 'success',
-      message: 'Model is predicted successfully',
+      message: 'Model prediction successful',
       data: {
         id: uuidv4(),
         result,
@@ -105,7 +102,7 @@ app.post('/predict', upload.single('image'), async (req, res) => {
   } catch (error) {
     res.status(400).json({
       status: 'fail',
-      message: 'Terjadi kesalahan dalam melakukan prediksi',
+      message: 'Error during prediction: ' + error.message,
     })
   }
 })
@@ -121,7 +118,7 @@ app.use((err, req, res, next) => {
 
   res.status(400).json({
     status: 'fail',
-    message: err.message || 'Terjadi kesalahan dalam melakukan prediksi',
+    message: err.message || 'Error during prediction',
   })
 })
 
