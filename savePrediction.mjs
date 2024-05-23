@@ -1,7 +1,7 @@
 import admin from 'firebase-admin'
+import serviceAccount from './service.json' assert { type: 'json' };
 
 // Inisialisasi Firebase Admin SDK
-const serviceAccount = require(`./${process.env.SERVICE_ACCOUNT_FILE}`)
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
   databaseURL: 'https://submissionmlgc-hilman-424200.firebaseio.com',
