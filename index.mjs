@@ -6,6 +6,7 @@ import dotenv from 'dotenv'
 import { savePredictionToFirestore } from './savePrediction.mjs'
 import admin from 'firebase-admin'
 import serviceAccount from './service.json' assert { type: 'json' }
+import cors from 'cors';
 
 dotenv.config()
 const app = express()
