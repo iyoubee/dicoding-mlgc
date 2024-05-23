@@ -1,19 +1,20 @@
-import admin from 'firebase-admin'
-import serviceAccount from './service.json' assert { type: 'json' };
+import { Firestore } from '@google-cloud/firestore'
+import serviceAccount from './service.json' assert { type: 'json' }
 
-// Inisialisasi Firebase Admin SDK
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  databaseURL: 'https://submissionmlgc-hilman-424200.firebaseio.com',
+// Initialize Firestore client with service account credentials
+const firestore = new Firestore({
+  projectId: serviceAccount.project_id,
+  credentials: {
+    client_email: serviceAccount.client_email,
+    private_key: serviceAccount.private_key,
+  },
 })
 
-// Fungsi untuk menyimpan prediksi ke Firestore
+// Function to save prediction to Firestore
 async function savePredictionToFirestore(prediction) {
   try {
-    const db = admin.firestore()
-
-    // Tambahkan prediksi ke koleksi 'predictions'
-    await db.collection('predictions').doc(prediction.id).set({
+    // Add prediction to the 'predictions' collection
+    await firestore.collection('predictions').doc(prediction.id).set({
       id: prediction.id,
       result: prediction.result,
       suggestion: prediction.suggestion,
