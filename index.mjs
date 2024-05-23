@@ -4,7 +4,9 @@ import express from 'express'
 import multer from 'multer'
 import { v4 as uuidv4 } from 'uuid'
 import * as tf from '@tensorflow/tfjs-node'
+import dotenv from 'dotenv';
 
+dotenv.config();
 const app = express()
 const port = process.env.PORT || 8080
 
@@ -24,7 +26,7 @@ let model
 // Function to download and load the model
 async function loadModel() {
   try {
-    const modelUrl = process.env.MODEL_URL // Assuming MODEL_URL is the environment variable storing the model URL
+    const modelUrl = process.env.MODEL_URL
     if (!modelUrl) {
       throw new Error('Model URL is not provided in the environment variable')
     }
