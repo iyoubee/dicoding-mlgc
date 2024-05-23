@@ -4,10 +4,20 @@ import { v4 as uuidv4 } from 'uuid'
 import * as tf from '@tensorflow/tfjs-node'
 import dotenv from 'dotenv'
 import { savePredictionToFirestore } from './savePrediction.mjs'
+import admin from 'firebase-admin'
+import serviceAccount from './service.json' assert { type: 'json' }
 
 dotenv.config()
 const app = express()
 const port = process.env.PORT || 8080
+
+// Inisialisasi Firebase Admin SDK
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+  databaseURL: process.env.DB_URL,
+})
+
+const db = admin.firestore()
 
 // Configure multer for file upload
 const upload = multer({
@@ -85,7 +95,7 @@ app.post('/predict', (req, res) => {
       }
 
       // Save prediction to Firestore
-      await savePredictionToFirestore(predictionData)
+      await savePredictionToFirestore(predictionData, db)
 
       const predictionResult = {
         status: 'success',
@@ -108,6 +118,27 @@ app.post('/predict', (req, res) => {
 // Check if server is running
 app.get('/', (req, res) => {
   res.send('Server is running!')
+})
+
+// New endpoint to get prediction histories
+app.get('/predict/histories', async (req, res) => {
+  try {
+    const snapshot = await db.collection('predictions').get()
+    const histories = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      history: doc.data(),
+    }))
+
+    res.status(200).json({
+      status: 'success',
+      data: histories,
+    })
+  } catch (error) {
+    res.status(500).json({
+      status: 'fail',
+      message: 'Error fetching prediction histories: ' + error.message,
+    })
+  }
 })
 
 app.listen(port, () => {
