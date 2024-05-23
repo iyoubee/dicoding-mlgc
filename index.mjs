@@ -18,7 +18,7 @@ const upload = multer({
     }
     cb(null, true)
   },
-})
+}).single('image')
 
 let model
 
@@ -40,72 +40,74 @@ async function loadModel() {
 loadModel()
 
 // Endpoint to handle prediction
-app.post('/predict', upload.single('image'), async (req, res) => {
-  try {
-    if (!model) {
-      throw new Error('Model is not loaded')
+app.post('/predict', (req, res) => {
+  upload(req, res, async function (err) {
+    if (err) {
+      // Handle Multer errors
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(413).json({
+          status: 'fail',
+          message:
+            'Payload content length greater than maximum allowed: 1000000',
+        })
+      }
+      return res.status(400).json({
+        status: 'fail',
+        message: 'Error during file upload',
+      })
     }
 
-    // Simulate image preprocessing and prediction
-    const imageBuffer = req.file.buffer
-    const imageTensor = tf.node
-      .decodeImage(imageBuffer)
-      .resizeBilinear([224, 224])
-      .toFloat()
-      .expandDims()
+    try {
+      if (!model) {
+        throw new Error('Model is not loaded')
+      }
 
-    const prediction = model.predict(imageTensor)
-    const result =
-      (await prediction.array())[0][0] > 0.5 ? 'Cancer' : 'Non-cancer'
+      // Simulate image preprocessing and prediction
+      const imageBuffer = req.file.buffer
+      const imageTensor = tf.node
+        .decodeImage(imageBuffer)
+        .resizeBilinear([224, 224])
+        .toFloat()
+        .expandDims()
 
-    const predictionData = {
-      id: uuidv4(),
-      result,
-      suggestion:
-        result === 'Cancer'
-          ? 'Segera periksa ke dokter!'
-          : 'Tetap jaga kesehatan!',
-      createdAt: new Date().toISOString(),
+      const prediction = model.predict(imageTensor)
+      const result =
+        (await prediction.array())[0][0] > 0.5 ? 'Cancer' : 'Non-cancer'
+
+      const predictionData = {
+        id: uuidv4(),
+        result,
+        suggestion:
+          result === 'Cancer'
+            ? 'Segera periksa ke dokter!'
+            : 'Tetap jaga kesehatan!',
+        createdAt: new Date().toISOString(),
+      }
+
+      // Save prediction to Firestore
+      await savePredictionToFirestore(predictionData)
+
+      const predictionResult = {
+        status: 'success',
+        message: 'Model is predicted successfully',
+        data: {
+          ...predictionData,
+        },
+      }
+
+      res.status(201).json(predictionResult)
+    } catch (error) {
+      res.status(400).json({
+        status: 'fail',
+        message: 'Terjadi kesalahan dalam melakukan prediksi',
+      })
     }
-
-    // Save prediction to Firestore
-    await savePredictionToFirestore(predictionData)
-
-    const predictionResult = {
-      status: 'success',
-      message: 'Model prediction successful',
-      data: {
-        ...predictionData,
-      },
-    }
-
-    res.status(200).json(predictionResult)
-  } catch (error) {
-    res.status(400).json({
-      status: 'fail',
-      message: 'Error during prediction: ' + error.message,
-    })
-  }
+  })
 })
 
 // Check if server is running
 app.get('/', (req, res) => {
   res.send('Server is running!')
-})
-
-// Handle errors related to file size and type
-app.use((err, req, res, next) => {
-  if (err.code === 'LIMIT_FILE_SIZE') {
-    return res.status(413).json({
-      status: 'fail',
-      message: 'Payload content length greater than maximum allowed: 1000000',
-    })
-  }
-
-  res.status(400).json({
-    status: 'fail',
-    message: err.message || 'Error during prediction',
-  })
 })
 
 app.listen(port, () => {
