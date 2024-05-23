@@ -1,7 +1,7 @@
 import admin from 'firebase-admin'
 
 // Inisialisasi Firebase Admin SDK
-const serviceAccount = require('./submissionmlgc-hilman-424200-2bfaee80dc63.json')
+const serviceAccount = require(`./${process.env.SERVICE_ACCOUNT_FILE}`)
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
   databaseURL: 'https://submissionmlgc-hilman-424200.firebaseio.com',
