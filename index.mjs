@@ -4,9 +4,10 @@ import express from 'express'
 import multer from 'multer'
 import { v4 as uuidv4 } from 'uuid'
 import * as tf from '@tensorflow/tfjs-node'
-import dotenv from 'dotenv';
+import dotenv from 'dotenv'
+import { savePredictionToFirestore } from './savePrediction.mjs'
 
-dotenv.config();
+dotenv.config()
 const app = express()
 const port = process.env.PORT || 8080
 
@@ -58,6 +59,8 @@ app.post('/predict', upload.single('image'), async (req, res) => {
     const prediction = model.predict(imageTensor)
     const result =
       (await prediction.array())[0][0] > 0.5 ? 'Cancer' : 'Non-cancer'
+
+    savePredictionToFirestore(prediction)
 
     const predictionResult = {
       status: 'success',
